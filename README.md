@@ -41,3 +41,4 @@
 `}` <br />
 8. 마지막으로 Instantiate된 모든 weapon들이 사라지지 않고 계속 리소스를 차지하기 때문에 메모리 손실이 발생한다. 때문에 일정 시간 이후에는 생성되었던 weapon 오브젝트를 삭제할 필요가 있다. -> weapon.cs의 Start메소드에 Destroy메소드를 추가해준다 <br />
 `Destroy(gameObject, 1);` <- 1초 뒤에 해당 오브젝트를 삭제하는 메소드
+---
