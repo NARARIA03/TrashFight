@@ -42,6 +42,6 @@ public class MouseForPlayer : MonoBehaviour
         if (Time.time - lastShootTime > shootInterval) {
             Instantiate(weapon, shootTransform.position, Quaternion.identity);
             lastShootTime = Time.time;
-        }
+        }   
     }
 }
