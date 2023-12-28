@@ -3,6 +3,13 @@
 ### 나도코딩님의 `유니티 무료 강의 (Crash Course) - 5시간 만에 게임 만드는 법 배우기` 강의를 보며 진행했습니다.
 - [강의 링크](https://www.youtube.com/watch?v=wBsSUBEUYV4)
 ---
+# Version
+- Unity 2021.3.33f1 Apple Silicon LTS
+- VScode 1.85.1
+	- Extension
+		- C# 1.24.4
+		- Unity Tools
+		- Unity Code Snippets
 ## 2023-12-19
 - Unity 설치 후 기본적인 UI, 기능들에 대해 공부한 뒤 배경이 끊기지 않고 계속 이동하도록 구현
 ---
