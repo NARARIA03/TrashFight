@@ -232,7 +232,7 @@
 
 ### 게임의 난이도를 더 높히기 위해 중간에 현재 레벨보다 더 높은 적이 함께 나오게 수정
 
-1. 1~10회차에서 enemy2가 가끔 나오고, 11~20회차에서 enemy3가 가끔 나올 수 있도록 SpawnEnemy 메소드 내에서 Random메소드와 if문을 이용해 확률을 구현해 일정 확률로 `idx++;` 을 수행한다
+1. 1-10회차에서 enemy2가 가끔 나오고, 11-20회차에서 enemy3가 가끔 나올 수 있도록 SpawnEnemy 메소드 내에서 Random메소드와 if문을 이용해 확률을 구현해 일정 확률로 `idx++;` 을 수행한다
     
     ```csharp
     private void SpawnEnemy(float posX, int idx) 
