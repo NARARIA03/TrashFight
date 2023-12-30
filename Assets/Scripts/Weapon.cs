@@ -7,6 +7,8 @@ public class Weapon : MonoBehaviour
     [SerializeField]
     private float moveSpeed = 10f;
 
+    public float damage = 1f;
+
     void Start()
     {
         Destroy(gameObject, 1);    

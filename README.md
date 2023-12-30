@@ -332,4 +332,159 @@
     	enemy.SetMoveSpeed(moveSpeed);
     }
     ```
-    ---
+---
+## 2023-12-28
+>무기 - 적 충돌 처리 구현 <br />
+적 - 플레이어 충돌 처리 구현 <br />
+적이 처치된 위치에서 코인이 생성되어 랜덤하게 떨어지도록 구현 <br />
+떨어지는 코인과 플레이어가 충돌하면 코인을 먹어 점수가 오르도록 구현<br /> 
+## 충돌 처리 (무기 - 적, 적 - 플레이어)
+
+### 무기가 적에게 닿았을 때 적이 사라지도록 구현
+
+1. Weapon 오브젝트에 Circle Colider 2D를 적용하고, Is Trigger를 체크해줌
+2. Enemy.cs에 hp 변수를 private로 선언하고 SerializeField로 만들어줌, 그리고 Enemy1 - Enemy7의 hp를 Unity에서 각각 지정해줌
+3. Weapon.cs에 damage 변수를 **public**으로 선언 ← GetComponent 메소드를 통해 damage 변수에 접근 가능하도록 열어둠
+4. Enemy.cs에 `OnTriggerEnter2D` 메소드를 선언하고 구현 (Is Trigger를 체크했을 때, 충돌감지만 일어났을 때 구현)
+    - 참고로 Is Trigger를 체크하지 않은 경우는 `OnCollisionEnter2D` 메소드로 구현
+    
+    ```csharp
+    // Enemy.cs
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+    	if(other.gameObject.tag = "Weapon")
+    	{
+    		Weapon weapon = other.gameObject.GetComponent<Weapon>();
+    		hp -= weapon.damage;
+    		if(hp <= 0)
+    		{
+    			Destroy(gameObject);
+    		}
+    		Destroy(other.gameObject);
+    	}
+    }
+    ```
+    
+    - Unity에서 오브젝트에 부여한 tag로 오브젝트를 구분 가능하다. 이걸로 적과 충돌한 오브젝트게 Weapon인지 확인한다
+    - 무기와 적이 충돌했다면 적의 hp에서 무기의 데미지를 빼서 업데이트
+    - 적의 hp가 0 이하라면 적 오브젝트를 제거
+    - 적과 무기가 충돌했다면 모든 일이 수행된 뒤에 무기 오브젝트를 제거
+
+---
+
+### 플레이어가 적에게 닿았을 때 게임이 종료되도록 구현
+
+> 무기 - 적 충돌과 구현하는 방법은 비슷하다. 만약 캐릭터의 체력도 구현한다면 완전히 동일할 것으로 보인다
+> 
+1. MouseForPlayer.cs에 OnTriggerEnter2D 메소드를 선언하고 구현 (Enemy태그 오브젝트와 충돌했다면 Destroy 메소드로 플레이어 오브젝트를 제거)
+
+	```csharp
+	// MouseForPlayer.cs
+	private void OnTriggerEnter2D(Collider2D other)
+	{
+		if(other.gameObject.tag == "Enemy")
+		{
+			Destroy(gameObject);
+		}
+	}
+	```
+
+---
+
+# 코인 기능 구현
+
+> 적을 처치하면 코인이 생성되어 랜덤한 위치로 떨어지도록 구현
+플레이어가 이 코인을 먹으면 점수도 오르고 무기를 업그레이드 할 수 있도록 구현할 예정
+> 
+1. 먼저 코인 오브젝트부터 구현해 보자
+    1. 코인 이미지의 Pixels Per Unit 값을 50정도로 줄여서 크기를 키워준다
+    2. Sprite Mode를 Multiple로 설정하고, Sprite Editror에서 Slice 해준다
+    3. Animation을 적용해 빙글빙글 회전하는 것 처럼 보이게 만든다. Animation 속도를 조절하고 싶다면 .anim 파일을 누른 뒤 인스펙터 뷰에서 Samples값을 더 키워주면 된다
+    4. 마지막으로 Order in Layer 값을 1로 줘서 배경에 묻히지 않도록 해준다.
+2. 코인과 주인공이 충돌했을 때 충돌기능을 구현해야 하므로, 코인에도 태그를 새로 만들어 붙여주고, Circle Colider 2D 컴포넌트도 추가해준다. 역시 Is Trigger 체크를 해줘야 한다 (안 해주면 코인에 밀려서 떨어져버림)
+3. 코인의 움직임을 구현하기 위해 우선 Rigidbody 2D 컴포넌트를 추가해준 뒤, Coin.cs 스크립트를 생성해 연결해준다
+4. 코인이 생성되면 랜덤으로 좌상단 또는 우상단으로 튀어올라갔다가 떨어지도록 구현하기 위해 Rigidbody2D 컴포넌트를 GetComponent 메소드로 가져온 뒤 AddForce 메소드를 활용해서 힘의 방향을 조절해준다. AddForce 메소드에는 Vector2값과 ForceMode값이 들어가는데, ForceMode값은 Impulse로 설정한다
+5. 먼저 좌상단, 우상단 랜덤으로 튀어오르도록 하기 위해 Random.Range메소드를 사용해 실수형 변수 verticalJumpForce, horizontalJumpForce 두 개를 선언해 Vector2로 묶어주고 이를 AddForce 메소드에 적용해준다
+6. 코인은 시간이 지나면 사라지게 만들어야 하므로 minY 변수를 생성해주고, Update 메소드에서 Destroy를 구현해준다
+    
+    ```csharp
+    // Coin.cs
+    private float minY = -6f;
+    
+    void Start()
+    {
+    	Jump();
+    }
+    
+    private void Jump()
+    {
+    	Rigidbody2D rigidBody = GetComponent<Rigidbody2D>();
+    
+    	float verticalJumpForce = Random.Range(4f, 8f);
+    	float horizontalJumpForce = Random.Range(-2f, 2f);
+    	Vector2 jumpForce = new Vector2(horizontalJumpForce, verticalJumpForce);
+    
+    	rigidbody.AddForce(jumpForce, ForceMode2D.Impulse);
+    }
+    
+    void Update()
+    {
+    	if (transform.position.y <= minY)
+    	{
+    		Destroy(gameObject);
+    	}
+    }
+    ```
+    
+7. 코인은 적을 처치하면 나와야 하고, 재활용되는 오브젝트이므로 Prefabs폴더로 집어넣는다
+8. 코인은 적이 처치되면 등장하므로, Enemy.cs의 충돌 처리 이후 삭제하는 부분에서 Coin이 생성되도록 구현하면 된다. 먼저 Enemy.cs에서 GameObject 변수를 SerializeFIeld로 선언한 뒤 Unity에서 Coin Prefab 오브젝트를 모든 Enemy 오브젝트에 연결해준다
+9. Enemy.cs의 충돌 처리 부분 코드에서 Instantiate 메소드를 사용해 Coin오브젝트를 생성해준다. 위치는 적이 삭제되는 위치로 잡아준다
+    
+    ```csharp
+    // Enemy.cs
+    [SerializeField]
+    private GameObject coin;
+    
+    .. // 중간 코드 생략
+    
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+    	if(other.gameObject.tag == "Weapon")
+    	{
+    		Weapon weapon = other.gameObject.GetComponent<Weapon>();
+    		hp -= weapon.damage;
+    		if(hp <= 0)
+    		{
+    			// 여기 수정!
+    			Instantiate(coin, gameObject.transform.position, Quaternion.identity);
+    			Destroy(gameObject);
+    		}
+    		Destroy(other.gameObject);
+    	}
+    }
+    ```
+    
+10. 플레이어가 코인과 충돌하면 코인 오브젝트를 없애주고, 어떤 내부 변수를 1씩 키워줘서 먹은 코인 수를 기록할 수 있도록 하자. 그러려면 플레이어와 적이 충돌하는 부분의 코드에 코인 관련 내용도 추가해주면 된다
+
+	```csharp
+	// MouseForPlayer.cs
+	..
+
+	public int coinScore = 0;
+
+	..
+
+	private void OnTriggerEnter2D(Collider2D other)
+	{
+		if (other.gameObject.tag == "Enemy")
+		{
+			Destroy(gameObject);
+		}
+		else if (other.gameObject.tag == "Coin")
+		{
+			Destroy(other.gameObject);
+			coinScore++;
+		}
+	}
+	```
+---

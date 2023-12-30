@@ -6,7 +6,7 @@ public class KeyboardForPlayer : MonoBehaviour
 {
     [SerializeField]
     private float moveSpeed;
-    // Update is called once per frame
+    
     void Update()
     {
         // // 키보드 입력받아 상하좌우 모두 이동하게 하는 코드
