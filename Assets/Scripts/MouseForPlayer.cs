@@ -5,7 +5,8 @@ using UnityEngine;
 public class MouseForPlayer : MonoBehaviour
 {
     [SerializeField]
-    private GameObject weapon;
+    private GameObject[] weapons;
+    private int weaponIdx = 0;
 
     [SerializeField]
     private Transform shootTransform;
@@ -14,8 +15,6 @@ public class MouseForPlayer : MonoBehaviour
     private float shootInterval = 0.05f;
 
     private float lastShootTime = 0f;
-
-    public int coinScore = 0;
 
     void Update()
     {
@@ -44,7 +43,7 @@ public class MouseForPlayer : MonoBehaviour
         // Time.time은 현재 시간 값이다.
         if (Time.time - lastShootTime > shootInterval)
         {
-            Instantiate(weapon, shootTransform.position, Quaternion.identity);
+            Instantiate(weapons[weaponIdx], shootTransform.position, Quaternion.identity);
             lastShootTime = Time.time;
         }
     }
@@ -59,8 +58,15 @@ public class MouseForPlayer : MonoBehaviour
         else if (other.gameObject.tag == "Coin")
         {
             Destroy(other.gameObject);
-            coinScore++;
-            Debug.Log(coinScore);
+            GameManager.instance.IncreaseCoin(); // 싱글톤을 통해 GameManager의 메소드에 바로 접근 가능
+        }
+    }
+
+    public void WeaponUpgrade()
+    {
+        if(weaponIdx < weapons.Length - 1)
+        {
+            weaponIdx += 1;
         }
     }
 }

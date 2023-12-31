@@ -333,7 +333,7 @@
     }
     ```
 ---
-## 2023-12-28
+## 2023-12-30
 >무기 - 적 충돌 처리 구현 <br />
 적 - 플레이어 충돌 처리 구현 <br />
 적이 처치된 위치에서 코인이 생성되어 랜덤하게 떨어지도록 구현 <br />
@@ -487,4 +487,209 @@
 		}
 	}
 	```
+---
+## 2023-12-31
+>점수 출력 기능 구현<br />
+무기 업그레이드 기능 구현<br />
+## 점수 출력 기능 구현
+### 1. 점수 출력 UI 구현
+
+> 점수 출력이나, 게임에 필요한 UI들은 Hierarchy뷰의 UI 를 통해 구현할 수 있다. UI를 추가하게 되면 Hierarchy 뷰에 Canvas와 EventSystem이라는 요소가 자동으로 추가되게 된다
+> 
+
+> Hierarchy 뷰에서 Canvas를 더블클릭해보면 엄청 큰 사각형이 생긴 것을 알 수 있는데, 이게 캔버스 영역이다. 이 영역은 게임 영역과 별도로 작동하나, 캔버스 영역에 UI들을 배치한 뒤 게임을 실행하면 게임 화면에 비율이 맞춰져서 나타나게 된다
+> 
+1. Hierarchy뷰에서 우클릭 → UI → Panel을 클릭해 새 패널을 추가한다. 새로 추가된 패널 이름은 ScorePannel로 설정한다
+    - 패널은 게임 내의 버튼이나 텍스트, 이미지 등을 한꺼번에 관리하기 위한 도구라고 생각하면 된다
+2. Canvas를 클릭하고 UI Scale Mode를 Scale With Screen Size로 설정하고, 해상도를 게임 해상도와 동일하게 잡아준다
+    - 게임 실행한 환경 해상도에 따라 UI의 크기도 따라서 변하게 하는 설정이다
+3. ScorePannel을 클릭하고 패널의 크기와 위치를 조절해준다
+    - 크기와 모양은 Scene 뷰에서 Rect Tool로 크기를 줄여 작은 직사각형으로 만들어주었다
+    - 위치는 Rect Transform의 왼쪽에 있는 버튼을 클릭한 뒤 opt키를 누른 채로 좌상단 아이콘을 눌러 화면 좌상단에 붙여주었다
+    - 이후 Scene 뷰에서 Rect Tool을 사용해 살짝 여백을 줬다
+4. ScorePannel을 우클릭하고 UI → Image를 클릭한 뒤 위치를 잡아주고, Source Image에 코인 이미지를 넣어주고 Set Native Size를 클릭해 원본 비율로 바꿔준 뒤 크기와 위치를 조절해준다
+5. ScorePannel을 우클릭하고 UI → TextMeshPro를 클릭한 뒤 위치를 잡아주고, Font Size와 Alignment 값을 조절해준다. 텍스트 초기값은 우선 0으로 설정했다. 그리고 Wrapping을 Disabled로 바꿔준다
+    - Wrapping은 사각형 영역 밖으로 텍스트가 나가면 다음 줄로 옮겨서 작성하도록 하는 기능이다
+6. ScorePannel의 색상을 투명하게 바꿔준다. Color에서 A(Alpha) 값을 0으로 수정해주면 된다
+
+---
+
+### 2. 점수 출력 UI에 실제로 먹은 코인 개수가 뜨도록 구현
+
+> Empty Object인 GameManager 오브젝트를 생성하고, GameManager.cs 스크립트를 연결해준 뒤 스크립트 상에서 구현한다. 게임의 전반적인 내용을 관리하는 스크립트이므로 일반적으로 **싱글톤 패턴**으로 구현하게 된다
+> 
+
+> 싱글톤 패턴의 정의는 “객체의 인스턴스가 오직 1개만 생성되는 패턴” 이다. 
+싱글톤 패턴을 사용하면 메모리를 효율적으로 사용할 수 있고, 클래스 간 데이터 공유가 쉽다
+> 
+1. Hierarchy 뷰에서 Create Empty를 통해 GameManager라는 이름으로 빈 게임 오브젝트를 만든다
+2. Scripts 폴더에 GameManager.cs 스크립트를 생성한 뒤 GameManager 오브젝트에 연결한다
+3. GameManager.cs 스크립트를 열어준 뒤 싱글톤 패턴을 적용하기 위해 아래와 같이 수정해준다
+    
+    ```csharp
+    // GameManager.cs
+    
+    public class GameManager : MonoBehaviour
+    {
+    	public static GameManager instance = null;
+    
+    	private void Awake() 
+    	{
+    		if(instance == null)
+    		{
+    			instance = this;
+    		}
+    	}
+    }
+    ```
+    
+4. 코인 개수를 저장할 변수가 필요하니까 코인 변수를 새로 선언하고, 코인을 증가시키는 public 메소드를 선언해준다
+    
+    ```csharp
+    // GameManager.cs
+    
+    public class GameManager : MonoBehaviour
+    {
+    	public static GameManager instance = null;
+    	
+    	private int coin = 0; // 코인 변수 선언
+    
+    	private void Awake() 
+    	{
+    		if(instance == null)
+    		{
+    			instance = this;
+    		}
+    	}
+    
+    	public void IncreaseCoin() // 코인 개수 1 증가시키는 public 메소드
+    	{
+    		coin++;
+    	}
+    }
+    ```
+    
+5. MouseForPlayer.cs의 충돌처리 부분에서 동전과 플레이어가 충돌했을 때 IncreaseCoin메소드를 실행시켜준다
+    
+    > GameManager.cs 스크립트가 싱글톤 패턴으로 구현되어 있으므로`GameManager.instance`를 통해 GameManager 클래스의 메소드에 쉽게 접근할 수 있다
+    > 
+    
+    ```csharp
+    // MouseForPlayer.cs
+    
+	// 생략
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+    	if(other.gameObject.tag == "Enemy")
+    	{
+    		Destroy(gameObject);
+    	}
+    	else if(other.gameObject.tag == "Coin")
+    	{
+    		Destroy(other.gameObject);
+    		GameManager.instance.IncreaseCoin(); // 쉽게 GameManager의 메소드에 접근
+    	}
+    }
+    ```
+    
+6. 이제 게임 화면에 coin변수값이 뜨도록 하기 위해 GameManager.cs에서 TextMeshProUGUI형의 변수를 [SerializeField]와 함께 선언해준 뒤, Unity에서 아까 만들어둔 TextMeshPro UI 오브젝트를 이 변수에다 연결해준다. 빈 오브젝트인 GameManager에 SerializeField 변수가 뜨므로 여기다 연결하면 된다
+    
+    ```csharp
+    // GameManager.cs
+    
+    	[SerializeField]
+    	private TextMeshProUGUI text;
+    ```
+    
+7. GameManager.cs의 IncreaseCoin메소드에서 TextMeshPro 변수에 접근해 SetText메소드를 활용해서 텍스트 내용을 변경해주는 코드를 추가해준다. SetText 메소드는 문자열 데이터만 받을 수 있으므로 ToString 메소드를 사용해 coin 변수를 문자열로 수정해서 집어넣는다
+    
+    ```csharp
+    // GameManager.cs
+    
+    public void IncreaseCoin()
+    {
+    	coin++;
+    	text.SetText(coin.ToString());
+    }
+    ```
+
+
+## 무기 업그레이드 기능 구현
+> 플레이어가 일정 이상의 코인을 획득하면 다음 단계의 무기를 사용할 수 있도록 구현
+> 
+1. Prefabs 폴더에서 무기를 복제해준 뒤 이름을 각각 WeaponBlue, WeaponRed로 바꿔주고
+무기 이미지와 Move Speed, Damage를 Unity상에서 수정해준다
+2. MouseForPlayer.cs에서 weapon변수를 weapons 배열로 바꿔준 뒤 Unity에서 weapons 배열에 3개의 무기를 추가해준다
+3. MouseForPlayer.cs에서 weaponIdx 변수를 새로 선언해주고, 기존 weapon변수가 사용되던 곳에서 weaponIdx 변수를 활용해 수정해준다
+    
+    ```csharp
+    // MouseForPlayer.cs
+    
+    public class MouseForPlayer : MonoBehaviour
+    {
+    	[SerializeField]
+    	private GameObject[] weapons;
+    	
+    	private int weaponIdx = 0;
+    
+    	// 생략
+    	
+    	void Shoot()
+    	{
+    		if(Time.time - lastShootTime > shootInterval)
+    		{
+    			Instantiate(weapons[weaponIdx], shootTransform.position, Quaternion.identity);
+    			lastShootTime = Time.time;
+    		}
+    	}
+    	// 생략
+    }
+    ```
+    
+4. MouseForPlayer 클래스 밖에서 weaponIdx 값을 조절할 수 있도록 하기 위해서MouseForPlayer.cs에 WeaponUpgrade 메소드를 public으로 선언해주고, weapons 배열의 index 범위 내에서 weaponIdx 변수를 1씩 키우도록 구현한다
+    
+    ```csharp
+    // MouseForPlayer.cs
+    
+    public class MouseForPlayer : MonoBehaviour
+    {
+    	// 생략
+    	public void WeaponUpgrade()
+    	{
+    		if(weaponIdx < weapons.Length - 1)
+    		{
+    			weaponIdx++;
+    		}
+    	}
+    }
+    ```
+    
+5. GameManager.cs에서 coin의 개수가 15의 배수가 되면 MouseForPlayer.cs의 WeaponUpgrade 메소드에 접근해 다음 무기로 업그레이드하도록 구현한다. 
+    > GameManager.cs에서 MouseForPlayer.cs의 메소드에 접근하기 위해 `FindObjectOfType<>();` 메소드를 사용한다
+    
+    ```csharp
+    // GameManager.cs
+    
+    public class GameManager : MonoBehaviour
+    {
+    	// 생략
+    	public void IncreaseCoin()
+      {
+    	  coin++;
+        text.SetText(coin.ToString());
+    
+        if (coin % 15 == 0)
+        {
+    	    MouseForPlayer player = FindObjectOfType<MouseForPlayer>();
+          if (player != null)
+          {
+    	      player.WeaponUpgrade();
+          }
+        }
+      }
+    }
+    ```
+    
+    
+> 최종적으로 게임을 테스트해보면 코인을 15개 먹었을 때 파란 무기로 바뀌고, 30개 먹었을 때 빨간 무기로 바뀌고, 45개부터는 변화가 없음을 알 수 있다
 ---
