@@ -597,7 +597,7 @@
     ```csharp
     // GameManager.cs
     
-    	[SerializeField]
+	[SerializeField]
     	private TextMeshProUGUI text;
     ```
     
@@ -680,7 +680,7 @@
     
         if (coin % 15 == 0)
         {
-    	    MouseForPlayer player = FindObjectOfType<MouseForPlayer>();
+          MouseForPlayer player = FindObjectOfType<MouseForPlayer>();
           if (player != null)
           {
     	      player.WeaponUpgrade();
