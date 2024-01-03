@@ -7,6 +7,9 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField]
     private GameObject[] enemies; // 적 prefabs 7개의 GameObject를 Unity에서 가져옴
 
+    [SerializeField]
+    private GameObject boss;
+
     private float[] aryPosX = { -2.2f, -1.1f, 0, 1.1f, 2.2f }; // 적이 생성될 x좌표 배열
 
     [SerializeField]
@@ -20,6 +23,12 @@ public class EnemySpawner : MonoBehaviour
     private void StartEnemyRoutine()
     {
         StartCoroutine("EnemyRoutine");
+    }
+
+    // 게임오버 발생 시 GameManager.cs에서 호출해 코루틴을 중지시킨다
+    public void StopEnemyRoutine()
+    {
+        StopCoroutine("EnemyRoutine");
     }
 
     private IEnumerator EnemyRoutine()
@@ -37,7 +46,6 @@ public class EnemySpawner : MonoBehaviour
             // foreach 문을 아래처럼 사용하면 aryPosX배열의 값을 하나씩 posX로 가져오며, aryPosX의 모든 값을 읽을 때까지 반복한다
             foreach (float posX in aryPosX)
             {
-                // int selectEnemy = Random.Range(0, enemies.Length);
                 SpawnEnemy(posX, moveSpeed, enemyIdx);
             }
             spawnCount += 1;
@@ -45,6 +53,13 @@ public class EnemySpawner : MonoBehaviour
             {
                 enemyIdx += 1;
                 moveSpeed += 1;
+            }
+
+            if (enemyIdx >= enemies.Length)
+            {
+                SpawnBoss();
+                enemyIdx = 0;
+                moveSpeed = 5f;
             }
 
             yield return new WaitForSeconds(spawnInterval); // spawnInterval 값 동안 아래 무한 반복문을 실행하기 전에 기다린다
@@ -60,7 +75,7 @@ public class EnemySpawner : MonoBehaviour
         {
             idx += 1; // 20%의 확률로 1 단계 더 강한 몬스터가 출력되도록
         }
-        
+
         if (idx >= enemies.Length) // index값이 넘어가도 에러를 방지하기 위해
         {
             idx = enemies.Length - 1;
@@ -69,5 +84,10 @@ public class EnemySpawner : MonoBehaviour
         GameObject enemyObj = Instantiate(enemies[idx], spawnPos, Quaternion.identity); // 첫 인수는 게임오브젝트, 두번째 인수는 생성위치, 세번째 위치는 회전값
         Enemy enemy = enemyObj.GetComponent<Enemy>(); // 새로 만든 enemyObj에서 Enemy라는 Component를 가져옴
         enemy.SetMoveSpeed(moveSpeed); // Enemy 클래스의 SetMoveSpeed메소드를 가져와 사용
+    }
+
+    private void SpawnBoss()
+    {
+        Instantiate(boss, transform.position, Quaternion.identity);
     }
 }

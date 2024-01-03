@@ -101,7 +101,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   coin: {fileID: 6141806245747340590, guid: c95a8fed419c840fbaaab90d5c1b9219, type: 3}
   moveSpeed: 6
-  hp: 12
+  minY: -6
+  hp: 6
 --- !u!61 &8480586553378171833
 BoxCollider2D:
   m_ObjectHideFlags: 0

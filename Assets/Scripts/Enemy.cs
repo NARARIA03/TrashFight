@@ -9,8 +9,9 @@ public class Enemy : MonoBehaviour
     private GameObject coin;
     [SerializeField]
     private float moveSpeed = 10f;
+
     public float minY = -6f;
-    
+
     [SerializeField]
     private float hp = 1f;
 
@@ -43,6 +44,10 @@ public class Enemy : MonoBehaviour
             hp -= weapon.damage; // 적의 hp에서 무기의 damage를 빼줌
             if (hp <= 0) // 적의 hp가 0 이하라면
             {
+                if (gameObject.tag == "Boss")
+                {
+                    GameManager.instance.SetGameOver(true);
+                }
                 Instantiate(coin, gameObject.transform.position, Quaternion.identity);
                 Destroy(gameObject); // 적 오브젝트 제거
             }

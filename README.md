@@ -693,3 +693,240 @@
     
 > 최종적으로 게임을 테스트해보면 코인을 15개 먹었을 때 파란 무기로 바뀌고, 30개 먹었을 때 빨간 무기로 바뀌고, 45개부터는 변화가 없음을 알 수 있다
 ---
+## 2024-01-03
+>보스 구현<br />
+게임승리, 게임오버 구현<br />
+결과 화면 구현
+---
+
+## 1. 보스 만들기
+
+1. 기존의 Enemy Prefab중 하나를 복제한 뒤 이미지를 수정하고, Unity에서 체력과 이동속도를 보스에 맞게 적절히 수정해준다. 보스는 Boss 태그를 새로 만들어 따로 관리해주자
+2. EnemySpawner.cs에서 boss 변수를 SerializeField로 선언한 뒤 Unity에서 연결해준다
+3. enemyIdx ≥ enemies.Length 일 경우 보스 오브젝트를 생성해주고 enemyIdx와 moveSpeed를 초기값으로 수정해주도록 코드를 수정해준다
+    
+    ```csharp
+    // EnemySpawner.cs의 EnemyRoutine 메소드 내부 while문
+    while (true)
+    {
+    	// foreach 문을 아래처럼 사용하면 aryPosX배열의 값을 하나씩 posX로 가져오며, aryPosX의 모든 값을 읽을 때까지 반복한다
+    	foreach (float posX in aryPosX)
+    	{
+    		SpawnEnemy(posX, moveSpeed, enemyIdx);
+    	}
+    
+    	spawnCount += 1;
+    
+    	if (spawnCount % goNextLevel == 0) // spawnCount가 goNextLevel과 같아지면 다음 레벨로 넘어간다
+    	{
+    		enemyIdx += 1;
+    		moveSpeed += 1;
+    	}
+    
+    	// 여기서 보스를 생성하고 일반 적들의 스펙을 초기화하는 코드를 추가
+    	if (enemyIdx >= enemies.Length)
+    	{
+    		SpawnBoss();
+    		enemyIdx = 0;
+    		moveSpeed = 5f;
+    	}
+    
+    	yield return new WaitForSeconds(spawnInterval); // spawnInterval 값 동안 아래 무한 반복문을 실행하기 전에 기다린다
+    }
+    
+    // 보스를 생성하는 메소드
+    private void SpawnBoss()
+    {
+    	Instantiate(boss, transform.position, Quaternion.identity);
+    }
+    ```
+    
+4. 플레이어와의 충돌처리 부분에 “Boss” 태그에 대한 내용도 조건문에 추가해준다
+    
+    ```csharp
+    // MouseForPlayer.cs
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+    	if (other.gameObject.tag == "Enemy" || other.gameObject.tag == "Boss")
+    	{
+    		Destroy(gameObject);
+    	}
+    	else if (other.gameObject.tag == "Coin")
+    	{
+    		Destroy(other.gameObject);
+    		GameManager.instance.IncreaseCoin(); // 싱글톤을 통해 GameManager의 메소드에 바로 접근 가능
+    	}
+    }
+    ```
+    
+
+---
+
+## 2. 게임 오버 처리
+
+> 보스를 처치하면 게임 승리, 캐릭터가 죽으면 게임 오버로 게임의 끝을 구현해준다
+게임의 끝을 구현하기 위해선 코루틴 동작을 멈추고 공격을 멈추면 된다
+또 게임이 끝나면 게임 오버 팝업과 함께 재시작 버튼 등을 추가해주면 좋을 것 같다
+> 
+1. 플레이어가 적과 충돌하면 더 이상 적이 생성되지 않도록 수정하기
+    
+    ```csharp
+    // EnemySpawner.cs
+    
+    // 게임오버 발생 시 GameManager.cs에서 호출해 코루틴을 중지시킨다
+    public void StopEnemyRoutine()
+    {
+    	StopCoroutine("EnemyRoutine");
+    }
+    ```
+    
+2. GameManager.cs에서 FindObjectOfType 메소드를 사용해 EnemySpawner 클래스를 가져와 StopEnemyRoutine 메소드를 실행해주는 GameOver 메소드를 만들어준다
+    
+    ```csharp
+    // GameManager.cs
+    
+    public void SetGameOver(bool isWin)
+    {
+    	EnemySpawner enemySpawner = FindObjectOfType<EnemySpawner>();
+    	if (enemySpawner != null)
+    	{
+    		enemySpawner.StopEnemyRoutine();
+    	}
+    }
+    ```
+    
+3. SetGameOver 메소드를 플레이어와 적이 충돌하는 충돌 감지 부분에 추가해주면 GameOver가 구현된다
+    
+    ```csharp
+    // MouseForPlayer.cs
+    
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+    	if (other.gameObject.tag == "Enemy" || other.gameObject.tag == "Boss")
+    	{
+    		Destroy(gameObject);
+    		GameManager.instance.SetGameOver(false); // 여기 추가!
+    	}
+    	else if (other.gameObject.tag == "Coin")
+    	{
+    		Destroy(other.gameObject);
+    		GameManager.instance.IncreaseCoin(); // 싱글톤을 통해 GameManager의 메소드에 바로 접근 가능
+    	}
+    }
+    ```
+    
+4. 보스를 죽였을 때도 GameOver가 발생할 수 있도록 구현해준다. 적과 무기가 충돌하는 충돌 감지 메소드에서 hp ≤ 0인 오브젝트의 태그가 보스인지 체크해주고 SetGameOver메소드를 사용해주면 됨
+    
+    ```csharp
+    // Enemy.cs
+    
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+    	if (other.gameObject.tag == "Weapon") // 충돌한 대상이 Weapon오브젝트일 경우
+    	{
+    		Weapon weapon = other.gameObject.GetComponent<Weapon>(); // 충돌한 Weapon 오브젝트의 Component를 받아옴
+    		hp -= weapon.damage; // 적의 hp에서 무기의 damage를 빼줌
+    		if (hp <= 0) // 적의 hp가 0 이하라면
+    		{
+    			if(gameObject.tag == "Boss") // 보스를 처치한 경우 SetGameOver메소드 호출
+    			{
+    				GameManager.instance.SetGameOver(true);
+    			}
+    			Instantiate(coin, gameObject.transform.position, Quaternion.identity);
+    			Destroy(gameObject); // 적 오브젝트 제거
+    		}
+    		Destroy(other.gameObject); // 적과 Weapon이 충돌했다면, 충돌한 Weapon 오브젝트도 제거
+    	}
+    }
+    ```
+    
+5. 게임이 끝나면 무기 발사도 멈추도록 수정해준다, isGameOver 변수를 GameManager.cs에서 public으로 선언해주고, SetGameOver 메소드에서 isGameOver 변수를 업데이트해주도록 수정한다. 그 후 MouseForPlayer.cs의 Shoot() 메소드를 if문과 isGameOver변수를 사용해 감싸주면 된다
+    
+    ```csharp
+    // GameManager.cs
+    
+    [HideInInspector]
+    public bool isGameOver = false;
+    
+    // 생략
+    
+    public void SetGameOver(bool isWin)
+    {
+    	EnemySpawner enemySpawner = FindObjectOfType<EnemySpawner>();
+    	if (enemySpawner != null)
+    	{
+    		enemySpawner.StopEnemyRoutine();
+    		isGameOver = true;
+    	}
+    }
+    ```
+    
+    ```csharp
+    // MouseForPlayer.cs
+    
+    void Update()
+    {
+    	Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+    	float toX = Mathf.Clamp(mousePos.x, -2.4f, 2.4f);
+    	transform.position = new Vector3(toX, transform.position.y, transform.position.z);
+    	
+    	if (GameManager.instance.isGameOver == false)
+    	{
+    		Shoot();
+    	}
+    }
+    ```
+    
+
+---
+
+# 결과 화면 구현
+
+> 결과 화면과 게임을 다시 시작할 수 있는 UI를 만들어보자
+> 
+1. 캔버스 밑에 UI → Pannel을 클릭해 새로운 GameOver 패널을 만들어준다
+2. 패널에 글자, 이미지, 버튼등을 적절히 배치해 게임 오버 UI를 구현해준다
+3. Game Over 패널은 게임이 끝났을 때만 보여야 하므로, Game Over 패널을 클릭한 뒤 인스펙터 뷰의 좌상단 체크표시를 클릭해 숨김처리 해준다
+4. 게임 오버 발생 시 1초 뒤에 Game Over 패널을 스크립트 상에서 숨김 해제 해주면 결과 화면으로 구현된다. Invoke() 메소드를 사용하면 ㅇ초 뒤에 메소드를 실행하도록 구현할 수 있다
+    
+    ```csharp
+    // GameManager.cs
+    
+    [SerializeField]
+    private GameObject gameOverPannel;
+    
+    // 생략
+    
+    public void SetGameOver(bool isWin)
+    {
+    	EnemySpawner enemySpawner = FindObjectOfType<EnemySpawner>();
+    	if (enemySpawner != null)
+    	{
+    		enemySpawner.StopEnemyRoutine();
+    		isGameOver = true;
+    	}
+    	Invoke("ShowGameOverPannel", 1f);
+    }
+    
+    private void ShowGameOverPannel()
+    {
+    	gameOverPannel.SetActive(true);
+    }
+    ```
+    
+5. 마지막으로 Play Again 버튼을 클릭하면 새로 게임이 시작되도록 구현해보자. 게임을 처음부터 다시 시작할 경우 SceneManager.LoadScene() 메소드를 사용해 게임 씬을 새로 불러오면 된다. Unity의 버튼 인스펙터 뷰에서 On Click() UI안에 GameManager 오브젝트와 GameManager.PlayAgain() 메소드를 불러와주면 성공적으로 Play Again 버튼이 작동한다 
+    
+    ```csharp
+    // GameManager.cs
+    
+    // 생략
+    
+    public void PlayAgain()
+    {
+    	// 게임 씬을 리 로딩 해주면 처음부터 다시 작동되게 된다
+    	SceneManager.LoadScene("SampleScene");
+    }
+    ```
+    
+
+---

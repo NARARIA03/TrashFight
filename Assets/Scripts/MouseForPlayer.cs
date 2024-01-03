@@ -33,7 +33,10 @@ public class MouseForPlayer : MonoBehaviour
         // 이를 사용하면 아래처럼 된다
         float toX = Mathf.Clamp(mousePos.x, -2.4f, 2.4f);
         transform.position = new Vector3(toX, transform.position.y, transform.position.z);
-        Shoot();
+        if (GameManager.instance.isGameOver == false)
+        {
+            Shoot();
+        }
     }
 
     // 미사일 발사하는 메소드
@@ -51,9 +54,10 @@ public class MouseForPlayer : MonoBehaviour
     // 플레이어가 적 또는 코인과 충돌했을때의 기능을 구현하기 위한 메소드
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.gameObject.tag == "Enemy")
+        if (other.gameObject.tag == "Enemy" || other.gameObject.tag == "Boss")
         {
             Destroy(gameObject);
+            GameManager.instance.SetGameOver(false);
         }
         else if (other.gameObject.tag == "Coin")
         {
